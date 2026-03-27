@@ -8,7 +8,6 @@ let total = 0;
 
 function agregarProducto(nombre, precio) {
 
-
   cantidad = cantidad + 1;  
   total = total + precio;  
 
@@ -26,7 +25,6 @@ function agregarProducto(nombre, precio) {
 //? Se llama desde onclick en el botón "Finalizar pedido"
 
 function finalizarPedido() {
-
   
   if (cantidad === 0) {
     alert("Tu pedido está vacío. Agrega al menos un producto.");
@@ -53,7 +51,6 @@ function finalizarPedido() {
     document.getElementById("totalCarrito").textContent = "0";
 
   } else {
-
     alert("Pedido no confirmado. Puedes seguir agregando productos.");
   }
 }
