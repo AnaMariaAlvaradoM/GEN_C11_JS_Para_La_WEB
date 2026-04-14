@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AD-19 · Pruebas, TDD & CI/CD</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:      #34d399;
+    --green-dim:  #065f46;
+    --green-glow: #34d39918;
+    --bg:         #0d0f0e;
+    --surface:    #141714;
+    --border:     #222923;
+    --text:       #e8ede9;
+    --muted:      #5a7060;
+    --red:        #f87171;
+    --amber:      #fbbf24;
+    --blue:       #60a5fa;
+    --mono:       'JetBrains Mono', monospace;
+    --sans:       'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #050605;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+    font-family: var(--sans);
+  }
+
+  /* ── STAGE 16:9 escalado ── */
+  #stage-wrap {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #stage {
+    width: 1280px;
+    height: 720px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    transform-origin: center center;
+  }
+
+  /* ── SLIDE ── */
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 64px 88px;
+  }
+  .slide.active { display: flex; }
+
+  /* ── NAV BAR ── */
+  #nav {
+    width: 100%;
+    height: 44px;
+    background: #0a0c0a;
+    border-top: 1px solid #1a1f1a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    flex-shrink: 0;
+  }
+
+  .nav-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .08em;
+  }
+
+  .dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: background .2s, transform .2s;
+    border: none;
+  }
+  .dot.active    { background: var(--green); transform: scale(1.35); }
+  .dot:hover     { background: #2a5a3a; }
+
+  .nav-btns { display: flex; gap: 10px; }
+
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .nav-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* ── CHIP ── */
+  .chip {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    background: var(--green-glow);
+    margin-bottom: 22px;
+    display: inline-block;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  h1 {
+    font-family: var(--sans);
+    font-size: 62px;
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -.025em;
+    color: var(--text);
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--green); }
+
+  h2 {
+    font-family: var(--sans);
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -.015em;
+    color: var(--text);
+    margin-bottom: 18px;
+    line-height: 1.1;
+  }
+  h2 .accent { color: var(--green); }
+
+  h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  p, li {
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--text);
+    opacity: .88;
+  }
+
+  .line {
+    width: 44px; height: 3px;
+    background: var(--green);
+    border-radius: 2px;
+    margin-bottom: 28px;
+  }
+
+  /* ── FOOTER SLIDE ── */
+  .slide-foot {
+    position: absolute;
+    bottom: 22px;
+    left: 88px; right: 88px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .slide-foot span {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+
+  /* ── DECORATIVE BG LINE ── */
+  .bg-line {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, transparent, var(--green-dim), transparent);
+    opacity: .5;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px;
+  }
+  .card.g { border-top: 2px solid var(--green); }
+  .card.r { border-top: 2px solid var(--red); }
+  .card.b { border-top: 2px solid var(--blue); }
+  .card.a { border-top: 2px solid var(--amber); }
+
+  /* ── GRIDS ── */
+  .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+  .col3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; width: 100%; }
+
+  /* ── OBJETIVOS LIST ── */
+  .obj-list { list-style: none; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .obj-list li {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 16px;
+    line-height: 1.5;
+    opacity: 1;
+  }
+  .obj-list li::before {
+    content: '→';
+    font-family: var(--mono);
+    color: var(--green);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--green);
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--green-dim);
+  }
+  td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    opacity: .88;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td strong { opacity: 1; color: var(--text); }
+  td small { display: block; opacity: .55; font-size: 12px; margin-top: 2px; }
+
+  /* ── TDD CYCLE ── */
+  .tdd-row {
+    display: flex; align-items: stretch; gap: 0; width: 100%;
+    margin: 24px 0 16px;
+  }
+  .tdd-step {
+    flex: 1; padding: 18px 16px; border-radius: 8px; text-align: center;
+  }
+  .tdd-step.red   { background:#1a0909; border:1.5px solid var(--red); }
+  .tdd-step.green { background:#091a10; border:1.5px solid var(--green); }
+  .tdd-step.blue  { background:#090f1a; border:1.5px solid var(--blue); }
+  .tdd-step.ghost { background:transparent; border:1px dashed var(--border); flex:.55; }
+
+  .tdd-circle {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    margin: 0 auto 10px;
+  }
+  .tdd-step.red   .tdd-circle { background:var(--red);   color:#0d0f0e; }
+  .tdd-step.green .tdd-circle { background:var(--green); color:#0d0f0e; }
+  .tdd-step.blue  .tdd-circle { background:var(--blue);  color:#0d0f0e; }
+  .tdd-step.ghost .tdd-circle { background:var(--border); color:var(--muted); }
+
+  .tdd-step h4 {
+    font-family: var(--mono); font-size: 10px; letter-spacing:.1em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .tdd-step.red   h4 { color: var(--red); }
+  .tdd-step.green h4 { color: var(--green); }
+  .tdd-step.blue  h4 { color: var(--blue); }
+  .tdd-step.ghost h4 { color: var(--muted); }
+  .tdd-step p { font-size: 13px; opacity:.72; }
+
+  .tdd-arrow {
+    display: flex; align-items: center;
+    color: var(--muted); font-size: 18px;
+    padding: 0 8px; flex-shrink: 0;
+  }
+
+  /* ── PIPELINE ── */
+  .pipeline {
+    display: flex; align-items: center; gap: 0;
+    width: 100%; margin: 20px 0;
+  }
+  .pipe-step {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px 10px; text-align: center;
+  }
+  .pipe-step.active { border-color: var(--green); background: var(--green-glow); }
+  .pipe-step .icon  { font-size: 22px; margin-bottom: 6px; }
+  .pipe-step p {
+    font-family: var(--mono); font-size: 10px; letter-spacing:.06em;
+    text-transform: uppercase; color: var(--muted); opacity: 1;
+  }
+  .pipe-step.active p { color: var(--green); }
+  .pipe-arrow { color: var(--muted); padding: 0 5px; font-size: 14px; flex-shrink: 0; }
+
+  /* ── QUESTION BLOCK ── */
+  .q-block {
+    background: #0a160d;
+    border: 1px solid var(--green-dim);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    padding: 18px 22px;
+    width: 100%;
+  }
+  .q-label {
+    font-family: var(--mono); font-size: 9px; color: var(--green);
+    letter-spacing: .14em; text-transform: uppercase; margin-bottom: 7px;
+  }
+  .q-block p { font-size: 18px; font-style: italic; opacity: 1; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes up {
+    from { opacity:0; transform: translateY(14px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  .slide.active > * { animation: up .3s ease both; }
+  .slide.active > *:nth-child(2) { animation-delay:.06s; }
+  .slide.active > *:nth-child(3) { animation-delay:.12s; }
+  .slide.active > *:nth-child(4) { animation-delay:.18s; }
+  .slide.active > *:nth-child(5) { animation-delay:.24s; }
+  .slide.active > *:nth-child(6) { animation-delay:.30s; }
+
+  .key-hint {
+    position: fixed; bottom: 52px; right: 20px;
+    font-family: var(--mono); font-size: 9px; color: #2a3a2a;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage-wrap">
+  <div id="stage">
+
+    <!-- ══ SLIDE 1 — APERTURA ══ -->
+    <div class="slide active" id="s1">
+      <div class="bg-line"></div>
+      <div class="chip">AD-19 · Generation Colombia</div>
+      <h1>¿Y si el <span class="accent">bug</span><br>llega a producción?</h1>
+      <div class="line"></div>
+      <p style="max-width:580px;margin-bottom:32px">Pruebas unitarias, TDD y CI/CD — las herramientas que usan los equipos que no se despiertan a las 2am.</p>
+      <div class="q-block" style="max-width:620px">
+        <div class="q-label">Pregunta de apertura</div>
+        <p>"Piensen en la última vez que una app les falló.<br>¿Qué creen que pasó ahí?"</p>
+      </div>
+      <div class="slide-foot">
+        <span>© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack</span>
+        <span>01 / 06</span>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 2 — OBJETIVOS ══ -->
+    <div class="slide" id="s2">
+      <div class="bg-line"></div>
+      <div class="chip">Objetivos de la sesión</div>
+      <h2>¿Qué vamos a lograr hoy?</h2>
+      <div class="line"></div>
+      <ul class="obj-list">
+        <li>Explicar por qué los ingenieros eligen frameworks de prueba como Mocha y Jest.</li>
+        <li>Describir cómo el TDD orienta el desarrollo y garantiza que el software funcione como se espera.</li>
+        <li>Utilizar frameworks de pruebas unitarias y herramientas de depuración en JavaScript.</li>
+      </ul>
+      <div class="slide-foot">
+        <span>© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack</span>
+        <span>02 / 06</span>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 3 — HABILIDADES ══ -->
+    <div class="slide" id="s3">
+      <div class="bg-line"></div>
+      <div class="chip">Habilidades & Mentalidades</div>
+      <h2>Lo que entrenamos hoy</h2>
+      <div class="line"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Habilidad de comportamiento</th>
+            <th>Mentalidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Escribir y ejecutar pruebas unitarias con Jest</strong><small>Configuramos desde cero y corremos nuestro primer suite.</small></td>
+            <td><strong>El rojo no es un error — es información</strong><small>Una prueba que falla bien vale más que una que pasa mal.</small></td>
+          </tr>
+          <tr>
+            <td><strong>Aplicar el ciclo Red · Green · Refactor</strong><small>Diseñar el comportamiento antes de escribir el código.</small></td>
+            <td><strong>Prueba primero, implementa después</strong><small>Invertir el orden revela ambigüedades antes de que cuesten.</small></td>
+          </tr>
+          <tr>
+            <td><strong>Depurar usando el output de Jest</strong><small>Leer "Expected / Received" como diagnóstico, no como castigo.</small></td>
+            <td><strong>Automatiza lo que no debería ser manual</strong><small>Si lo verificas a mano cada vez, es candidato a una prueba.</small></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="slide-foot">
+        <span>© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack</span>
+        <span>03 / 06</span>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 4 — TDD ══ -->
+    <div class="slide" id="s4">
+      <div class="bg-line"></div>
+      <div class="chip">Test-Driven Development</div>
+      <h2>El ciclo <span class="accent">Red · Green · Refactor</span></h2>
+      <div class="line"></div>
+
+      <div class="tdd-row">
+        <div class="tdd-step red">
+          <div class="tdd-circle">1</div>
+          <h4>🔴 Red</h4>
+          <p>Escribe la prueba.<br>Córrela. Debe fallar.</p>
+        </div>
+        <div class="tdd-arrow">→</div>
+        <div class="tdd-step green">
+          <div class="tdd-circle">2</div>
+          <h4>🟢 Green</h4>
+          <p>Código mínimo<br>que la haga pasar.</p>
+        </div>
+        <div class="tdd-arrow">→</div>
+        <div class="tdd-step blue">
+          <div class="tdd-circle">3</div>
+          <h4>🔵 Refactor</h4>
+          <p>Mejora el código.<br>Las pruebas siguen verdes.</p>
+        </div>
+        <div class="tdd-arrow">→</div>
+        <div class="tdd-step ghost">
+          <div class="tdd-circle">↩</div>
+          <h4>Repeat</h4>
+          <p>Nueva función,<br>nuevo ciclo.</p>
+        </div>
+      </div>
+
+      <div class="col2">
+        <div class="card g">
+          <h3>Regla clave</h3>
+          <p style="font-size:15px">Si la prueba pasa <em>antes</em> de escribir código, la prueba está mal.</p>
+        </div>
+        <div class="card r">
+          <h3>Regresión</h3>
+          <p style="font-size:15px">Una prueba que antes pasaba y ahora falla = nuevo código rompió algo existente.</p>
+        </div>
+      </div>
+
+      <div class="slide-foot">
+        <span>© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack</span>
+        <span>04 / 06</span>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 5 — CI/CD ══ -->
+    <div class="slide" id="s5">
+      <div class="bg-line"></div>
+      <div class="chip">CI / CD</div>
+      <h2>De commit a producción —<br><span class="accent">automático.</span></h2>
+      <div class="line"></div>
+
+      <div class="pipeline">
+        <div class="pipe-step">
+          <div class="icon">💻</div>
+          <p>git push</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="icon">🔗</div>
+          <p>GitHub</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step active">
+          <div class="icon">🧪</div>
+          <p>npm test</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="icon">📦</div>
+          <p>Build</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step active">
+          <div class="icon">🚀</div>
+          <p>Deploy</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="icon">🌐</div>
+          <p>Producción</p>
+        </div>
+      </div>
+
+      <div class="col2" style="margin-top:4px">
+        <div class="card g">
+          <h3>Integración Continua</h3>
+          <p style="font-size:15px">Cada commit dispara las pruebas. Si fallan, el código <strong>no avanza</strong>. El equipo lo sabe en minutos.</p>
+        </div>
+        <div class="card b">
+          <h3>Entrega Continua</h3>
+          <p style="font-size:15px">Si las pruebas pasan, el código está <strong>siempre listo</strong> para producción. No hay "día de deploy".</p>
+        </div>
+      </div>
+
+      <div class="slide-foot">
+        <span>© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack</span>
+        <span>05 / 06</span>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 6 — CIERRE ══ -->
+    <div class="slide" id="s6">
+      <div class="bg-line"></div>
+      <div class="chip">Cierre · Exit ticket</div>
+      <h2>Antes de cerrar,<br>en el chat:</h2>
+      <div class="line"></div>
+
+      <div class="q-block" style="margin-bottom:24px">
+        <div class="q-label">Exit ticket</div>
+        <p style="font-size:22px">"Usaría TDD cuando... &nbsp;porque..."</p>
+      </div>
+
+      <div class="col3">
+        <div class="card g">
+          <h3>Vimos</h3>
+          <p style="font-size:14px">Pruebas unitarias con Jest y el ciclo Red · Green · Refactor.</p>
+        </div>
+        <div class="card a">
+          <h3>Lo importante</h3>
+          <p style="font-size:14px">Una prueba que falla no es un error — es información.</p>
+        </div>
+        <div class="card b">
+          <h3>Próxima clase</h3>
+          <p style="font-size:14px">Este enfoque escala: APIs y múltiples módulos en testing.</p>
+        </div>
+      </div>
+
+      <div class="q-block" style="margin-top:18px; border-color:#2a3a2a; border-left-color:#2a3a2a; background:transparent">
+        <div class="q-label" style="color:var(--muted)">Puente</div>
+        <p style="opacity:.55; font-size:15px">"Si las pruebas verifican que el código hace lo que debe... ¿quién verifica que las pruebas están probando lo correcto?"</p>
+      </div>
+
+      <div class="slide-foot">
+        <span>© 2026 Ana Alvarado · Educadora Tech & Desarrolladora Full Stack · linkedin.com/in/ana-alvarado-instructora-full-stack</span>
+        <span>06 / 06</span>
+      </div>
+    </div>
+
+  </div><!-- /stage -->
+</div><!-- /stage-wrap -->
+
+<!-- ══ NAV ══ -->
+<div id="nav">
+  <span class="nav-label">AD-19 · Pruebas, TDD & CI/CD</span>
+  <div class="dots" id="dots"></div>
+  <div class="nav-btns">
+    <button class="nav-btn" onclick="prev()">← Prev</button>
+    <button class="nav-btn" onclick="next()">Next →</button>
+  </div>
+</div>
+
+<div class="key-hint">← →</div>
+
+<script>
+  const TOTAL = 6;
+  let cur = 1;
+
+  // build dots
+  const dotsEl = document.getElementById('dots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('button');
+    d.className = 'dot' + (i === 1 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  }
+
+  function goTo(n) {
+    document.getElementById('s' + cur).classList.remove('active');
+    dotsEl.children[cur - 1].classList.remove('active');
+    cur = Math.max(1, Math.min(TOTAL, n));
+    document.getElementById('s' + cur).classList.add('active');
+    dotsEl.children[cur - 1].classList.add('active');
+  }
+
+  function next() { goTo(cur + 1); }
+  function prev() { goTo(cur - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+  });
+
+  // ── SCALE STAGE TO VIEWPORT ──
+  const stage = document.getElementById('stage');
+
+  function scaleStage() {
+    const ww = window.innerWidth;
+    const wh = window.innerHeight - 44; // restar nav
+    const scaleX = ww / 1280;
+    const scaleY = wh / 720;
+    const scale  = Math.min(scaleX, scaleY);
+    stage.style.transform = `scale(${scale})`;
+  }
+
+  scaleStage();
+  window.addEventListener('resize', scaleStage);
+</script>
+</body>
+</html>
